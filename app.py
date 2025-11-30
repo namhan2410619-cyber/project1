@@ -1,50 +1,42 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+import streamlit as st
 import folium
-import time
+from streamlit_folium import st_folium
 from route import build_graph, find_optimal_route
 
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+st.set_page_config(page_title="스마트 통학 도우미", layout="wide", page_icon="🚀")
 
-@app.get("/")
-def main(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+st.title("스마트 통학 도우미")
 
-@app.post("/route")
-def route(
-    request: Request,
-    transport: str = Form(...),
-    start_lat: float = Form(...),
-    start_lon: float = Form(...),
-    end_lat: float = Form(...),
-    end_lon: float = Form(...)
-):
-    start_time = time.time()
+# 입력
+col1, col2 = st.columns(2)
+with col1:
+    start_lat = st.number_input("출발지 위도", value=37.5665)
+    start_lon = st.number_input("출발지 경도", value=126.9780)
+with col2:
+    end_lat = st.number_input("도착지 위도", value=37.5700)
+    end_lon = st.number_input("도착지 경도", value=126.9920)
 
+transport = st.selectbox("이동수단", ["walk", "bike", "drive", "bus"])
+
+if st.button("최적 경로 계산"):
     G = build_graph(start_lat, start_lon, transport)
     route_nodes, total_length = find_optimal_route(G, (start_lat, start_lon), (end_lat, end_lon))
 
     if not route_nodes:
-        return {"error": "경로 계산 실패"}
+        st.error("경로 계산 실패")
+    else:
+        # Polyline 샘플링: 3개 단위
+        route_coords = [(G.nodes[n]['y'], G.nodes[n]['x']) for i, n in enumerate(route_nodes) if i % 3 == 0]
 
-    route_coords = [(G.nodes[n]['y'], G.nodes[n]['x']) for i, n in enumerate(route_nodes) if i % 3 == 0]
+        # 지도 표시
+        m = folium.Map(location=[start_lat, start_lon], zoom_start=14)
+        folium.Marker([start_lat, start_lon], tooltip="출발지").add_to(m)
+        folium.Marker([end_lat, end_lon], tooltip="도착지", icon=folium.Icon(color="red")).add_to(m)
+        folium.PolyLine(route_coords, color="blue", weight=5, opacity=0.7).add_to(m)
 
-    m = folium.Map(location=[start_lat, start_lon], zoom_start=14)
-    folium.Marker([start_lat, start_lon], tooltip="출발지").add_to(m)
-    folium.Marker([end_lat, end_lon], tooltip="도착지", icon=folium.Icon(color="red")).add_to(m)
-    folium.PolyLine(route_coords, weight=5).add_to(m)
+        st_folium(m, width=700, height=500)
 
-    exec_time = round(time.time() - start_time, 2)
-    eta_min = round(total_length / 80, 1)
-
-    html_map = m._repr_html_()
-
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "map": html_map,
-        "exec_time": exec_time,
-        "eta_min": eta_min,
-        "distance": round(total_length, 1)
-    })
+        # 예상 시간 계산 (속도 단위 km/h)
+        speed_kmh = {"walk":5, "bike":15, "drive":40, "bus":30}
+        commute_time = total_length / 1000 / speed_kmh[transport] * 60  # 분 단위
+        st.success(f"총 거리: {round(total_length,1)} m, 예상 소요시간: {round(commute_time,1)} 분")
