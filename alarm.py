@@ -1,6 +1,13 @@
+# alarm.py
 import datetime
 
 def calculate_alarm_time(prep_time, commute_time, school_hour=9, school_minute=0):
+    """
+    prep_time: 준비 시간 (분)
+    commute_time: 이동 예상 시간 (분)
+    school_hour/minute: 등교 시간
+    return: 추천 기상 시간 (HH:MM)
+    """
     prep_time = int(prep_time)
     commute_time = int(commute_time)
     
