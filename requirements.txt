@@ -1,13 +1,9 @@
 streamlit
 pandas
 folium
+streamlit_folium
 networkx
+geopy
 requests
 paho-mqtt
 python-dotenv
-geopy
-streamlit_folium
-datetime
-geopy.geocoders
-alarm 
-route
