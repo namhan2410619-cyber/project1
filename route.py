@@ -4,10 +4,6 @@ import networkx as nx
 from datetime import datetime
 
 def build_graph(lat, lon, transport='drive'):
-    """
-    lat, lon: 출발지 좌표
-    transport: 'walk', 'bike', 'drive'
-    """
     G = ox.graph_from_point((lat, lon), dist=5000, network_type=transport)
     
     now_hour = datetime.now().hour
