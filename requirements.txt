@@ -6,3 +6,5 @@ requests
 paho-mqtt
 python-dotenv
 geopy
+streamlit_folium
+
